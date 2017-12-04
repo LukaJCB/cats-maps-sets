@@ -29,7 +29,6 @@ final class NonEmptySet[A] private (val set: SortedSet[A]) extends AnyVal {
 
   def union(as: NonEmptySet[A]) = new NonEmptySet(set.union(as.toSet))
   def size: Int = set.size
-  def foreach[U](f: A ⇒ U): Unit = set.foreach(f)
   def forall(p: A ⇒ Boolean): Boolean = set.forall(p)
   def exists(f: A ⇒ Boolean): Boolean = set.exists(f)
   def find(f: A ⇒ Boolean): Option[A] = set.find(f)
@@ -194,7 +193,8 @@ object NonEmptySet extends NonEmptySetInstances {
     else throw new IllegalArgumentException("Cannot create NonEmptySet from empty set")
 
 
-  def of[A: Order](a: A, as: A*): NonEmptySet[A] = new NonEmptySet(SortedSet(as: _*)(Order[A].toOrdering) + a)
-  def apply[A: Order](as: A*): Option[NonEmptySet[A]] = fromSet(SortedSet(as: _*)(Order[A].toOrdering))
+  def of[A: Order](a: A, as: A*): NonEmptySet[A] =
+    new NonEmptySet(SortedSet(a)(Order[A].toOrdering) ++ SortedSet(as: _*)(Order[A].toOrdering) + a)
+  def apply[A: Order](head: A, tail: SortedSet[A]): NonEmptySet[A] = new NonEmptySet(SortedSet(head)(Order[A].toOrdering) ++ tail)
   def one[A: Order](a: A): NonEmptySet[A] = new NonEmptySet(SortedSet(a)(Order[A].toOrdering))
 }

@@ -15,3 +15,5 @@ libraryDependencies ++= Seq(
   "org.typelevel" %%% "cats-laws" % "1.0.0-RC1",
   "org.typelevel" %%% "cats-testkit" % "1.0.0-RC1" % Test
 )
+
+addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")

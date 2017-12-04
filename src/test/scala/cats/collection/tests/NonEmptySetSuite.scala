@@ -13,7 +13,7 @@ class NonEmptySetSuite extends CatsSuite {
 
   implicit def arbNonEmptySet[A: Order](implicit A: Arbitrary[A]): Arbitrary[NonEmptySet[A]] =
     Arbitrary(implicitly[Arbitrary[SortedSet[A]]].arbitrary.flatMap(fa =>
-      A.arbitrary.map(a => NonEmptySet.of(a, fa.toList: _*))))
+      A.arbitrary.map(a => NonEmptySet(a, fa))))
 
 
   checkAll("NonEmptySet[Int]", SemigroupKTests[NonEmptySet].semigroupK[Int])
