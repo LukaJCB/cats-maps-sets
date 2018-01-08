@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2018 Luka Jacobowitz
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cats.collection
 
 import cats.data._
@@ -12,17 +28,22 @@ final class NonEmptyMap[K, A] private(val m: SortedMap[K, A]) extends AnyVal {
   private implicit def ordering: Ordering[K] = m.ordering
   private implicit def order: Order[K] = Order.fromOrdering
 
-  def ++(as: NonEmptyMap[K, A]): NonEmptyMap[K, A] = new NonEmptyMap(m ++ as.m)
+  def ++(as: NonEmptyMap[K, A]): NonEmptyMap[K, A] = concat(as)
+  def concat(as: NonEmptyMap[K, A]): NonEmptyMap[K, A] = new NonEmptyMap(m ++ as.m)
   def -(key: K): SortedMap[K, A] = m - key
+  def +(ka: (K, A)): NonEmptyMap[K, A] = new NonEmptyMap(m + ka)
 
   def map[B](f: A ⇒ B): NonEmptyMap[K, B] =
     new NonEmptyMap(Functor[SortedMap[K, ?]].map(m)(f))
 
   def get(k: K): Option[A] = m.get(k)
 
+  def keys: SortedSet[K] = m.keySet
+
   def toNonEmptyList: NonEmptyList[(K, A)] = NonEmptyList.fromListUnsafe(m.toList)
 
   def head: (K, A) = m.head
+  def last: (K, A) = m.last
   def tail: SortedMap[K, A] = m.tail
 
   def apply(key: K): Option[A] = get(key)
@@ -124,9 +145,8 @@ final class NonEmptyMap[K, A] private(val m: SortedMap[K, A]) extends AnyVal {
 }
 
 private[collection] sealed abstract class NonEmptyMapInstances {
-  implicit def catsDataInstancesForNonEmptyMap[K: Order]: SemigroupK[NonEmptyMap[K, ?]] with NonEmptyTraverse[NonEmptyMap[K, ?]]
-      with FlatMap[NonEmptyMap[K, ?]] =
-    new SemigroupK[NonEmptyMap[K, ?]] with NonEmptyTraverse[NonEmptyMap[K, ?]] with FlatMap[NonEmptyMap[K, ?]] {
+  implicit def catsDataInstancesForNonEmptyMap[K: Order]: SemigroupK[NonEmptyMap[K, ?]] with NonEmptyTraverse[NonEmptyMap[K, ?]] =
+    new SemigroupK[NonEmptyMap[K, ?]] with NonEmptyTraverse[NonEmptyMap[K, ?]] {
 
       def combineK[A](a: NonEmptyMap[K, A], b: NonEmptyMap[K, A]): NonEmptyMap[K, A] =
         a ++ b
@@ -144,15 +164,8 @@ private[collection] sealed abstract class NonEmptyMapInstances {
       def reduceRightTo[A, B](fa: NonEmptyMap[K, A])(f: A => B)(g: (A, Eval[B]) => Eval[B]): Eval[B] =
         fa.reduceRightTo(f)(g)
 
-      def flatMap[A, B](fa: NonEmptyMap[K, A])(f: A => NonEmptyMap[K, B]): NonEmptyMap[K, B] =
-        NonEmptyMap.fromMapUnsafe(FlatMap[SortedMap[K, ?]].flatMap(fa.m)(f andThen(_.m)))
-
-      def tailRecM[A, B](a: A)(f: A => NonEmptyMap[K, Either[A, B]]): NonEmptyMap[K, B] =
-        NonEmptyMap.fromMapUnsafe(FlatMap[SortedMap[K, ?]].tailRecM(a)(f.andThen(_.m)))
-
       def nonEmptyTraverse[G[_], A, B](fa: NonEmptyMap[K, A])(f: A => G[B])(implicit G: Apply[G]) =
         fa nonEmptyTraverse f
-
 
       override def foldLeft[A, B](fa: NonEmptyMap[K, A], b: B)(f: (B, A) => B): B =
         fa.foldLeft(b)(f)
@@ -193,7 +206,7 @@ private[collection] sealed abstract class NonEmptyMapInstances {
 }
 
 object NonEmptyMap extends NonEmptyMapInstances {
-  def fromSet[K: Order, A](as: SortedMap[K, A]): Option[NonEmptyMap[K, A]] =
+  def fromMap[K: Order, A](as: SortedMap[K, A]): Option[NonEmptyMap[K, A]] =
     if (as.nonEmpty) Option(new NonEmptyMap(as)) else None
 
   def fromMapUnsafe[K: Order, A](m: SortedMap[K, A]): NonEmptyMap[K, A] =

@@ -1,9 +1,25 @@
+/*
+ * Copyright (c) 2018 Luka Jacobowitz
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cats.collection
 
 import cats.data._
 import cats.instances.sortedSet._
 import cats.kernel._
-import cats.{Always, Eval, Foldable, Later, Now, Reducible, SemigroupK, Show}
+import cats.{Always, CommutativeApply, Eq, Eval, Foldable, Later, Now, Reducible, SemigroupK, Show}
 
 import scala.collection.immutable._
 
@@ -13,7 +29,10 @@ final class NonEmptySet[A] private (val set: SortedSet[A]) extends AnyVal {
   private implicit def order: Order[A] = Order.fromOrdering
 
   def +(a: A): NonEmptySet[A] = new NonEmptySet(set + a)
-  def ++(as: NonEmptySet[A]): NonEmptySet[A] = new NonEmptySet(set ++ as.set)
+  def ++(as: NonEmptySet[A]): NonEmptySet[A] = concat(as)
+
+  def concat(as: NonEmptySet[A]): NonEmptySet[A] = new NonEmptySet(set ++ as.set)
+
   def -(a: A): SortedSet[A] = set - a
   def map[B: Order](f: A ⇒ B): NonEmptySet[B] =
     new NonEmptySet(SortedSet(set.map(f).to: _*)(Order[B].toOrdering))
@@ -22,6 +41,7 @@ final class NonEmptySet[A] private (val set: SortedSet[A]) extends AnyVal {
 
   def head: A = set.head
   def tail: SortedSet[A] = set.tail
+  def last: A = set.last
 
   def apply(a: A): Boolean = set(a)
   def contains(a: A): Boolean = set.contains(a)
@@ -141,8 +161,6 @@ private[collection] sealed abstract class NonEmptySetInstances {
 
       def reduceRightTo[A, B](fa: NonEmptySet[A])(f: A => B)(g: (A, Eval[B]) => Eval[B]): Eval[B] =
         fa.reduceRightTo(f)(g)
-
-
 
       override def foldLeft[A, B](fa: NonEmptySet[A], b: B)(f: (B, A) => B): B =
         fa.foldLeft(b)(f)
